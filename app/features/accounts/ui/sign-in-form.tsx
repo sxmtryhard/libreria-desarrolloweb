@@ -1,52 +1,13 @@
 "use client";
 
-import { FirebaseError } from "firebase/app";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
-import { getClientAuth } from "@/shared/ui/firebase-client";
-import {
-  type Credentials,
-  messageForAuthCode,
-  messageForStatus,
-  prepareCredentials,
-  SIGN_IN_MESSAGES,
-} from "./sign-in-messages";
+import { signInWithPassword } from "./sign-in-client";
+import { prepareCredentials, SIGN_IN_MESSAGES } from "./sign-in-messages";
 
 const ERROR_ID = "ingreso-error";
 const FIELD_CLASS =
   "mt-1 block min-h-11 w-full rounded border border-control-border bg-surface px-3 py-2 text-ink disabled:bg-surface-alt";
-
-function messageForError<T>(error: T): string {
-  if (error instanceof FirebaseError) {
-    return messageForAuthCode(error.code);
-  }
-  return SIGN_IN_MESSAGES.failed;
-}
-
-/**
- * Ingresa (spec F4, regla 1): Firebase comprueba la contraseña, el servidor cambia el token por la cookie
- * y el cliente de Firebase se cierra. Devuelve `null` si salió bien o el mensaje que hay que mostrar.
- */
-async function signIn(credentials: Credentials): Promise<string | null> {
-  const auth = getClientAuth();
-  try {
-    const result = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
-    const idToken = await result.user.getIdToken();
-    const response = await fetch("/api/session", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id_token: idToken }),
-    });
-    await signOut(auth);
-    if (!response.ok) {
-      return messageForStatus(response.status);
-    }
-    return null;
-  } catch (error) {
-    return messageForError(error);
-  }
-}
 
 function buttonLabel(pending: boolean): string {
   if (pending) {
@@ -79,7 +40,7 @@ export function SignInForm() {
     }
     setPending(true);
     setError(null);
-    const failure = await signIn(credentials);
+    const failure = await signInWithPassword(credentials);
     if (failure !== null) {
       setError(failure);
       setPassword("");

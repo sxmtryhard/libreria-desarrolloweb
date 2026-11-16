@@ -13,6 +13,7 @@ import {
 import { type AccountService, createAccountService } from "./accounts/server/account-service";
 import { createRegisterAccountHandler } from "./accounts/server/register-account-handler";
 import { createFirebaseAccountRepository } from "./accounts/server/repository.firebase";
+import { createSelfRegisterHandler } from "./accounts/server/self-register-handler";
 import { createSignInHandler, createSignOutHandler } from "./accounts/server/session-handlers";
 import { type BookService, createBookService } from "./catalog/server/book-service";
 import { createRegisterBookHandler } from "./catalog/server/register-book-handler";
@@ -92,6 +93,8 @@ export const myLoansService: MyLoansService = createMyLoansService({
   loans: createFirestoreLoanRepository(),
   books: createFirestoreBookCatalog(),
 });
+
+export const selfRegisterHandler = createSelfRegisterHandler({ service: accountService, rethrow: unstable_rethrow });
 
 export const signInHandler = createSignInHandler({
   sessions: sessionService,

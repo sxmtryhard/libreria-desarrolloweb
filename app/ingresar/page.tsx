@@ -29,6 +29,11 @@ export default function SignInPage() {
         <SignInGate />
       </Suspense>
       <p className="mt-6">
+        <Link href="/registrarse" className="inline-flex min-h-11 items-center underline">
+          ¿No tienes cuenta? Regístrate
+        </Link>
+      </p>
+      <p>
         <Link href="/" className="inline-flex min-h-11 items-center underline">
           Volver al inicio
         </Link>

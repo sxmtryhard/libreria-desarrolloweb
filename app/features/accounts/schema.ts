@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { RoleSchema, SessionSchema } from "@/shared/schema";
 
-/** Contrato de cuentas (F3 y F4). Solo el orquestador lo cambia. Claves del cable en snake_case. */
+/** Contrato de cuentas (F3, F4 y F10). Solo el orquestador lo cambia. Claves del cable en snake_case. */
 
 export const NAME_MAX_LENGTH = 120;
 export const EMAIL_MAX_LENGTH = 254;
@@ -21,6 +21,14 @@ export const RegisterAccountInputSchema = z.object({
   password: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
 });
 export type RegisterAccountInput = z.infer<typeof RegisterAccountInputSchema>;
+
+/** Cuerpo de `POST /api/accounts/register` (spec F10, regla 1). No lleva rol: siempre queda `EXTERNO`. */
+export const SelfRegisterInputSchema = z.object({
+  name: z.string().trim().min(1).max(NAME_MAX_LENGTH),
+  email: z.string().trim().toLowerCase().max(EMAIL_MAX_LENGTH).pipe(z.email()),
+  password: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
+});
+export type SelfRegisterInput = z.infer<typeof SelfRegisterInputSchema>;
 
 /** Cuenta creada, tal como se devuelve. Nunca incluye la contraseña (regla 6). */
 export const RegisteredAccountSchema = z.object({

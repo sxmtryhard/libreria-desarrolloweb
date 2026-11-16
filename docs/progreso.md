@@ -16,8 +16,9 @@ Lo mantiene el orquestador: se actualiza al cerrar cada feature (spec aprobada �
 - **Construido:** F34 · Pantalla de préstamos y devoluciones (2026-11-16). Spec: `docs/specs/f34-pantalla-de-prestamos-y-devoluciones.md`. Entrega: `docs/handoffs/f34-pantalla-de-prestamos-y-devoluciones.md`. Pantalla `/prestamos` para el personal (persona y vencidos, búsqueda de libro, prestar y devolver) y enlace «Préstamos» en la barra; probada en el navegador contra Firebase real.
 - **Construido:** F35 · Pantallas «Mis préstamos» y «Mis vencidos» (2026-11-16). Spec: `docs/specs/f35-mis-prestamos-y-mis-vencidos.md`. Entrega: `docs/handoffs/f35-mis-prestamos-y-mis-vencidos.md`. Pantallas `/mis-prestamos` y `/mis-vencidos` para prestatarios y sus enlaces en la barra; probadas en el navegador contra Firebase real.
 - **Ola 1 completa** (F0–F8, F33, F34 y F35): 12 de 40 features.
+- **Construido:** F10 · Autorregistrarse (2026-11-16). Spec: `docs/specs/f10-autorregistrarse.md`. Entrega: `docs/handoffs/f10-autorregistrarse.md`. API pública `POST /api/accounts/register` y pantalla `/registrarse`; probada en el navegador contra Firebase real. Van 13 de 40 features.
 - **Spec en curso:** ninguna.
-- **Siguiente:** ola 2, empezando por F10 (Autorregistrarse), ver `docs/features.md`.
+- **Siguiente:** F11 (Solicitar el rol de docente), ver `docs/features.md`.
 
 ## Decisiones tomadas
 - La sesión dura 8 horas y no se renueva sola; cerrar sesión revoca los tokens (spec F0, regla 3).
@@ -37,6 +38,7 @@ Lo mantiene el orquestador: se actualiza al cerrar cada feature (spec aprobada �
 - La sesión se ve en la cabecera («correo · Rol» y «Cerrar sesión», o «Ingresar»), ya no en el inicio; la barra solo enlaza a pantallas que existen (hoy Inicio y Catálogo) y cada feature de pantalla añade su enlace en `app/shared/ui/navigation.ts`; el texto del curso vive en `/acerca` (spec F33).
 - El mostrador es una sola pantalla (`/prestamos`) solo para el personal: el libro se elige buscándolo, la persona por correo, y hay «Prestar», «Registrar devolución» y «Ver vencidos»; quien no es personal ve un aviso y sin sesión va a `/ingresar` (spec F34).
 - Cada prestatario ve en `/mis-prestamos` sus préstamos activos (el que vence antes primero, con estado «Vencido» / «Vence hoy» / «Vence en N días») y en `/mis-vencidos` sus vencidos con multa y total; el personal ve un aviso; las fechas van en hora de Colombia (spec F35).
+- Cualquiera puede crear su cuenta en `/registrarse` con nombre, correo y una contraseña de 8 a 128 caracteres; queda siempre como `EXTERNO`, sirve de inmediato (sin verificar el correo) y entra con sesión al inicio; correo repetido → 409 (spec F10).
 
 ## Pendientes de la persona
 - Proyecto de Firebase `biblioteca-prestamos-19bdc` ya creado (2026-11-15): correo/contraseña activo, registro desde el cliente desactivado, Firestore en modo producción con reglas que niegan todo, app web `biblioteca-web` registrada.
