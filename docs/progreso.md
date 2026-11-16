@@ -3,12 +3,43 @@
 Lo mantiene el orquestador: se actualiza al cerrar cada feature (spec aprobada → construida → `npm run check:full` en verde → `security` → nota en `docs/handoffs/`). Lo leen Claude Code y OpenCode al empezar la sesión.
 
 ## Estado
-- **Construido:** nada todavía.
+- **Construido:** F0 · Base del proyecto (2026-11-15). Spec: `docs/specs/f0-base-del-proyecto.md`. Entrega: `docs/handoffs/f0-base-del-proyecto.md`. Probada contra Firebase real el 2026-11-15: `check:env` en OK, seed con las 5 cuentas, sesión de 8 h y rol leído de Firestore.
+- **Construido:** F1 · Registrar un libro (2026-11-15). Spec: `docs/specs/f1-registrar-un-libro.md`. Entrega: `docs/handoffs/f1-registrar-un-libro.md`. Solo la API (`POST /api/books`). Probada contra Firestore real el 2026-11-15: 201 al registrar, 409 con ISBN repetido (también con dos peticiones simultáneas) y 403 para un estudiante. Quedaron 2 libros de prueba («Libro de prueba») en la colección `books`.
+- **Construido:** F2 · Buscar libros por título o autor (2026-11-15). Spec: `docs/specs/f2-buscar-libros.md`. Entrega: `docs/handoffs/f2-buscar-libros.md`. Solo la API (`GET /api/books?q=`), pública; probada contra Firestore real con los libros de prueba.
+- **Construido:** F3 · Registrar una cuenta desde el mostrador (2026-11-15). Spec: `docs/specs/f3-registrar-una-cuenta.md`. Entrega: `docs/handoffs/f3-registrar-una-cuenta.md`. Solo la API (`POST /api/accounts`); probada contra Firebase real (201, 409, 403, 400 y la cuenta nueva pudo ingresar).
+- **Construido:** F4 · Ingresar con correo y contraseña (2026-11-15). Spec: `docs/specs/f4-ingresar-con-correo-y-contrasena.md`. Entrega: `docs/handoffs/f4-ingresar-con-correo-y-contrasena.md`. Pantalla `/ingresar`, `POST` y `DELETE /api/session` y bloque de sesión en el inicio; probada en el navegador contra Firebase real.
+- **Construido:** F5 · Prestar un libro físico (2026-11-15). Spec: `docs/specs/f5-prestar-un-libro-fisico.md`. Entrega: `docs/handoffs/f5-prestar-un-libro-fisico.md`. Solo la API (`POST /api/loans`); probada contra Firebase real (201, 401, 403, 404, 409 y dos préstamos simultáneos del último ejemplar).
+- **Construido:** F6 · Devolver un libro (2026-11-15). Spec: `docs/specs/f6-devolver-un-libro.md`. Entrega: `docs/handoffs/f6-devolver-un-libro.md`. Solo la API (`POST /api/loans/return`); probada contra Firebase real (200 a tiempo y tarde, 401, 403, 404 y dos devoluciones simultáneas).
+- **Construido:** F7 · Calcular la multa por retraso (2026-11-16). Spec: `docs/specs/f7-calcular-la-multa-por-retraso.md`. Entrega: `docs/handoffs/f7-calcular-la-multa-por-retraso.md`. Función `calculateFine` y dos campos nuevos (`days_late`, `fine_amount`) en la respuesta de la devolución; probada contra Firebase real.
+- **Construido:** F8 · Listar los préstamos vencidos de una persona (2026-11-16). Spec: `docs/specs/f8-listar-los-prestamos-vencidos.md`. Entrega: `docs/handoffs/f8-listar-los-prestamos-vencidos.md`. Solo la API (`GET /api/loans/overdue`); probada contra Firebase real (200 propio y del personal, 401, 403, 404 y 400).
+- **Construido:** F33 · Barra de navegación con sesión y las pantallas base (2026-11-16). Spec: `docs/specs/f33-barra-de-navegacion-y-pantallas-base.md`. Entrega: `docs/handoffs/f33-barra-de-navegacion-y-pantallas-base.md`. Cabecera con menú y sesión, pie, inicio nuevo, `/catalogo`, `/acerca` y «no encontrada»; probada en el navegador a 360, 768 y 1024 px contra Firebase real.
+- **Construido:** F34 · Pantalla de préstamos y devoluciones (2026-11-16). Spec: `docs/specs/f34-pantalla-de-prestamos-y-devoluciones.md`. Entrega: `docs/handoffs/f34-pantalla-de-prestamos-y-devoluciones.md`. Pantalla `/prestamos` para el personal (persona y vencidos, búsqueda de libro, prestar y devolver) y enlace «Préstamos» en la barra; probada en el navegador contra Firebase real.
+- **Construido:** F35 · Pantallas «Mis préstamos» y «Mis vencidos» (2026-11-16). Spec: `docs/specs/f35-mis-prestamos-y-mis-vencidos.md`. Entrega: `docs/handoffs/f35-mis-prestamos-y-mis-vencidos.md`. Pantallas `/mis-prestamos` y `/mis-vencidos` para prestatarios y sus enlaces en la barra; probadas en el navegador contra Firebase real.
+- **Ola 1 completa** (F0–F8, F33, F34 y F35): 12 de 40 features.
 - **Spec en curso:** ninguna.
-- **Siguiente:** F0 (base del proyecto), ver `docs/features.md`.
+- **Siguiente:** ola 2, empezando por F10 (Autorregistrarse), ver `docs/features.md`.
 
 ## Decisiones tomadas
-(Una línea por decisión importante, con el enlace a su spec o ADR.)
+- La sesión dura 8 horas y no se renueva sola; cerrar sesión revoca los tokens (spec F0, regla 3).
+- Los errores de la API responden `{ error: { code, message } }` con mensaje en español (spec F0, regla 1).
+- Una petición que modifica datos desde otro origen se rechaza con 403 (spec F0, regla 2).
+- El seed crea una cuenta por rol, sin libros; la contraseña viene de `SEED_PASSWORD` (spec F0, regla 6).
+- El rol vive en Firestore (`accounts/{uid}`), no en la cookie (spec F0, regla 3.4).
+- Un libro se registra con título, autor, ISBN y de 1 a 100 ejemplares; solo `BIBLIOTECARIO` y `ADMINISTRADOR` (spec F1).
+- Un ISBN repetido se rechaza con 409; no se suman ejemplares (spec F1, regla 7).
+- Buscar libros es público (sin sesión); coincide si el título o el autor contiene el texto, sin distinguir tildes ni mayúsculas; vacío devuelve todo; máximo 50 ordenados por título (spec F2).
+- En el mostrador, `BIBLIOTECARIO` y `ADMINISTRADOR` crean cuentas de `EXTERNO`, `ESTUDIANTE` o `DOCENTE` con nombre, correo y una contraseña inicial de 8 a 128 caracteres que escribe el personal; correo repetido → 409 (spec F3).
+- Se ingresa en `/ingresar`; credenciales malas muestran siempre «Correo o contraseña incorrectos.»; tras ingresar todos van a `/`; quien ya ingresó y abre `/ingresar` va a `/`; cerrar sesión lleva a `/ingresar` y cierra en todos los dispositivos (spec F4).
+- Presta el personal (`BIBLIOTECARIO`, `ADMINISTRADOR`) a una cuenta `EXTERNO`, `ESTUDIANTE` o `DOCENTE` buscada por correo. Plazo 7 / 14 / 30 días y límite de 1 / 3 / 5 préstamos activos según el rol. Se rechaza con vencidos, con el mismo libro ya prestado, en el límite o sin ejemplares (spec F5).
+- La devolución la registra el personal con el libro y el correo de la persona; tarde se acepta y la respuesta avisa con `returned_late`; sin préstamo activo → 404 «La persona no tiene prestado este libro.» (spec F6).
+- Multa: 1.000 pesos por cada día de retraso empezado (días de 24 horas), igual para todos los roles, con tope de 30 días (30.000 pesos) por préstamo; solo se informa en la devolución, no se guarda ni se cobra (spec F7).
+- Vencidos: cada prestatario ve los suyos y el personal los de cualquiera por correo; cada uno con título, autor, fechas, días de retraso y multa; el más atrasado primero y con el total de multas (spec F8).
+- La sesión se ve en la cabecera («correo · Rol» y «Cerrar sesión», o «Ingresar»), ya no en el inicio; la barra solo enlaza a pantallas que existen (hoy Inicio y Catálogo) y cada feature de pantalla añade su enlace en `app/shared/ui/navigation.ts`; el texto del curso vive en `/acerca` (spec F33).
+- El mostrador es una sola pantalla (`/prestamos`) solo para el personal: el libro se elige buscándolo, la persona por correo, y hay «Prestar», «Registrar devolución» y «Ver vencidos»; quien no es personal ve un aviso y sin sesión va a `/ingresar` (spec F34).
+- Cada prestatario ve en `/mis-prestamos` sus préstamos activos (el que vence antes primero, con estado «Vencido» / «Vence hoy» / «Vence en N días») y en `/mis-vencidos` sus vencidos con multa y total; el personal ve un aviso; las fechas van en hora de Colombia (spec F35).
 
 ## Pendientes de la persona
-(Cosas que solo ella puede hacer: probar en Vercel, configurar la consola de Firebase, revisar pantallas…)
+- Proyecto de Firebase `biblioteca-prestamos-19bdc` ya creado (2026-11-15): correo/contraseña activo, registro desde el cliente desactivado, Firestore en modo producción con reglas que niegan todo, app web `biblioteca-web` registrada.
+- `.env` creado y seed ejecutado por la persona (2026-11-15).
+- Activar el Modo de desarrollador de Windows para que pase `tests/project/guard.test.ts` (crea un symlink).
+- Actualizar Node a la versión 24.x (hoy: 22).
