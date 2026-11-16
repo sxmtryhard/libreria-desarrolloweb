@@ -17,9 +17,10 @@ Lo mantiene el orquestador: se actualiza al cerrar cada feature (spec aprobada �
 - **Construido:** F35 · Pantallas «Mis préstamos» y «Mis vencidos» (2026-11-16). Spec: `docs/specs/f35-mis-prestamos-y-mis-vencidos.md`. Entrega: `docs/handoffs/f35-mis-prestamos-y-mis-vencidos.md`. Pantallas `/mis-prestamos` y `/mis-vencidos` para prestatarios y sus enlaces en la barra; probadas en el navegador contra Firebase real.
 - **Ola 1 completa** (F0–F8, F33, F34 y F35): 12 de 40 features.
 - **Construido:** F10 · Autorregistrarse (2026-11-16). Spec: `docs/specs/f10-autorregistrarse.md`. Entrega: `docs/handoffs/f10-autorregistrarse.md`. API pública `POST /api/accounts/register` y pantalla `/registrarse`; probada en el navegador contra Firebase real.
-- **Construido:** F11 · Solicitar el rol de docente (2026-11-16). Spec: `docs/specs/f11-solicitar-el-rol-de-docente.md`. Entrega: `docs/handoffs/f11-solicitar-el-rol-de-docente.md`. API `POST /api/teacher-requests`, pantalla `/solicitar-docente` y su enlace en la barra; probada en el navegador contra Firebase real. Van 14 de 40 features.
+- **Construido:** F11 · Solicitar el rol de docente (2026-11-16). Spec: `docs/specs/f11-solicitar-el-rol-de-docente.md`. Entrega: `docs/handoffs/f11-solicitar-el-rol-de-docente.md`. API `POST /api/teacher-requests`, pantalla `/solicitar-docente` y su enlace en la barra; probada en el navegador contra Firebase real.
+- **Construido:** F12 · Aprobar o rechazar una solicitud de docente (2026-11-16). Spec: `docs/specs/f12-aprobar-o-rechazar-una-solicitud-de-docente.md`. Entrega: `docs/handoffs/f12-aprobar-o-rechazar-una-solicitud-de-docente.md`. Solo la API (`GET /api/teacher-requests/pending` y `POST /api/teacher-requests/decision`) y la nota del personal en `/solicitar-docente`; probada contra Firebase real. Van 15 de 40 features.
 - **Spec en curso:** ninguna.
-- **Siguiente:** F12 (Aprobar o rechazar una solicitud de docente), ver `docs/features.md`.
+- **Siguiente:** F13 (Crear una cuenta de bibliotecario), ver `docs/features.md`.
 
 ## Decisiones tomadas
 - La sesión dura 8 horas y no se renueva sola; cerrar sesión revoca los tokens (spec F0, regla 3).
@@ -41,6 +42,7 @@ Lo mantiene el orquestador: se actualiza al cerrar cada feature (spec aprobada �
 - Cada prestatario ve en `/mis-prestamos` sus préstamos activos (el que vence antes primero, con estado «Vencido» / «Vence hoy» / «Vence en N días») y en `/mis-vencidos` sus vencidos con multa y total; el personal ve un aviso; las fechas van en hora de Colombia (spec F35).
 - Cualquiera puede crear su cuenta en `/registrarse` con nombre, correo y una contraseña de 8 a 128 caracteres; queda siempre como `EXTERNO`, sirve de inmediato (sin verificar el correo) y entra con sesión al inicio; correo repetido → 409 (spec F10).
 - Un `EXTERNO` o `ESTUDIANTE` pide el rol de docente en `/solicitar-docente` con un motivo de 10 a 500 caracteres; solo una pendiente a la vez (409) y tras un rechazo puede volver a pedir; ve el estado de su última solicitud; pedir no cambia el rol (spec F11).
+- El personal (`BIBLIOTECARIO`, `ADMINISTRADOR`) ve las solicitudes de docente pendientes (la más antigua primero) y las aprueba o rechaza; aprobar cambia la cuenta a `DOCENTE` en la misma transacción; al rechazar puede dejar una nota opcional que la persona ve; la decisión es final; la pantalla del personal es F37 (spec F12).
 
 ## Pendientes de la persona
 - Proyecto de Firebase `biblioteca-prestamos-19bdc` ya creado (2026-11-15): correo/contraseña activo, registro desde el cliente desactivado, Firestore en modo producción con reglas que niegan todo, app web `biblioteca-web` registrada.

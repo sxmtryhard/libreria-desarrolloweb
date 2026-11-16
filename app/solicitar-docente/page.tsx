@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import type { TeacherRequest } from "@/features/accounts/schema";
+import type { MyTeacherRequest } from "@/features/accounts/schema";
 import { TeacherRequestForm } from "@/features/accounts/ui/teacher-request-form";
 import {
   latestRequestMessage,
+  latestRequestNote,
   TEACHER_REQUEST_MESSAGES,
   teacherRequestScreen,
 } from "@/features/accounts/ui/teacher-request-view";
@@ -15,8 +16,9 @@ export const metadata: Metadata = {
   title: "Solicitar docente · Biblioteca de préstamos",
 };
 
-/** Estado de la última solicitud (regla 5.4). El motivo solo se muestra mientras está pendiente. */
-function LatestRequest({ request }: { request: TeacherRequest }) {
+/** Estado de la última solicitud (F11 regla 5.4). El motivo solo se ve si está pendiente; la nota, si fue rechazada (F12 5.3). */
+function LatestRequest({ request }: { request: MyTeacherRequest }) {
+  const note = latestRequestNote(request);
   return (
     <article className="mt-6 rounded-lg border border-line bg-surface-alt p-4">
       <h2 className="text-lg font-semibold text-primary-strong">{latestRequestMessage(request.status)}</h2>
@@ -24,6 +26,7 @@ function LatestRequest({ request }: { request: TeacherRequest }) {
         Enviada el <time dateTime={request.requested_at}>{formatLibraryDateTime(request.requested_at)}</time>
       </p>
       {request.status === "PENDIENTE" && <p className="mt-2 break-words">Motivo: {request.reason}</p>}
+      {note !== null && <p className="mt-2 break-words">{note}</p>}
     </article>
   );
 }
@@ -34,7 +37,7 @@ async function TeacherRequestGate() {
   if (session === null) {
     redirect("/ingresar");
   }
-  let latest: TeacherRequest | null = null;
+  let latest: MyTeacherRequest | null = null;
   if (session.role === "EXTERNO" || session.role === "ESTUDIANTE") {
     latest = await teacherRequestService.latest(session);
   }

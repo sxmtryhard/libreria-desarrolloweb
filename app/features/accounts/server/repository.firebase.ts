@@ -1,10 +1,22 @@
 import "server-only";
-import type { QueryDocumentSnapshot } from "firebase-admin/firestore";
-import { type Account, AccountSchema } from "@/shared/schema";
+import type { DocumentSnapshot, Transaction } from "firebase-admin/firestore";
+import { type Account, AccountSchema, type Role } from "@/shared/schema";
 import { ACCOUNTS_COLLECTION, getAdminAuth, getAdminFirestore, hasAuthErrorCode } from "@/shared/server/firebase-admin";
-import { type NewTeacherRequest, NewTeacherRequestSchema, type TeacherRequest } from "../schema";
-import type { AccountDirectory, AccountRepository, TeacherRequestRepository } from "./repository";
-import { latestOf, type StoredTeacherRequest, toTeacherRequest } from "./teacher-requests";
+import {
+  type MyTeacherRequest,
+  type NewTeacherRequest,
+  NewTeacherRequestSchema,
+  type PendingTeacherRequest,
+  type TeacherRequest,
+} from "../schema";
+import type {
+  AccountDirectory,
+  AccountRepository,
+  DecisionChange,
+  DecisionState,
+  TeacherRequestRepository,
+} from "./repository";
+import { latestOf, oldestPending, type StoredTeacherRequest, toTeacherRequest } from "./teacher-requests";
 
 const TEACHER_REQUESTS_COLLECTION = "teacher_requests";
 
@@ -57,8 +69,30 @@ export function createFirestoreTeacherRequestRepository(): TeacherRequestReposit
     return collection().where("uid", "==", uid);
   }
 
-  function parse(document: QueryDocumentSnapshot): StoredTeacherRequest {
+  function parse(document: DocumentSnapshot): StoredTeacherRequest {
     return { id: document.id, ...NewTeacherRequestSchema.parse(document.data()) };
+  }
+
+  function accountReference(uid: string) {
+    return getAdminFirestore().collection(ACCOUNTS_COLLECTION).doc(uid);
+  }
+
+  /** Lee la solicitud y el rol de su cuenta dentro de la transacción. Un id con «/» no es un documento: no existe. */
+  async function readDecisionState(transaction: Transaction, requestId: string): Promise<DecisionState> {
+    if (requestId.includes("/")) {
+      return { request: null, accountRole: null };
+    }
+    const snapshot = await transaction.get(collection().doc(requestId));
+    if (!snapshot.exists) {
+      return { request: null, accountRole: null };
+    }
+    const request = parse(snapshot);
+    const account = await transaction.get(accountReference(request.uid));
+    let accountRole: Role | null = null;
+    if (account.exists) {
+      accountRole = AccountSchema.parse(account.data()).role;
+    }
+    return { request, accountRole };
   }
 
   return {
@@ -77,9 +111,37 @@ export function createFirestoreTeacherRequestRepository(): TeacherRequestReposit
       });
     },
 
-    async latest(uid: string): Promise<TeacherRequest | null> {
+    async latest(uid: string): Promise<MyTeacherRequest | null> {
       const found = await byUid(uid).get();
       return latestOf(found.docs.map(parse));
+    },
+
+    // Solo se filtra por `status` (índice simple); el orden y el límite se aplican aquí (spec F12, regla 2.1).
+    async listPending(limit: number): Promise<PendingTeacherRequest[]> {
+      const found = await collection().where("status", "==", "PENDIENTE").get();
+      return oldestPending(found.docs.map(parse), limit);
+    },
+
+    // La solicitud y el rol cambian en la misma transacción: o las dos cosas o ninguna (spec F12, regla 4.1).
+    decide(requestId: string, decide: (state: DecisionState) => DecisionChange): Promise<StoredTeacherRequest> {
+      return getAdminFirestore().runTransaction(async (transaction) => {
+        const state = await readDecisionState(transaction, requestId);
+        const change = decide(state);
+        if (state.request === null) {
+          throw new Error("No hay solicitud que actualizar.");
+        }
+        const decision = {
+          status: change.status,
+          decided_at: change.decided_at,
+          decided_by_uid: change.decided_by_uid,
+          note: change.note,
+        };
+        transaction.update(collection().doc(state.request.id), decision);
+        if (change.newRole !== null) {
+          transaction.update(accountReference(state.request.uid), { role: change.newRole });
+        }
+        return { ...state.request, ...decision };
+      });
     },
   };
 }

@@ -1,8 +1,8 @@
 import type { Role } from "@/shared/schema";
 import {
+  type MyTeacherRequest,
   REASON_MAX_LENGTH,
   REASON_MIN_LENGTH,
-  type TeacherRequest,
   TeacherRequesterRoleSchema,
   type TeacherRequestStatus,
 } from "../schema";
@@ -28,10 +28,10 @@ const LATEST_MESSAGES: Record<TeacherRequestStatus, string> = {
 export type TeacherRequestScreen =
   | { kind: "teacher" }
   | { kind: "staff" }
-  | { kind: "borrower"; latest: TeacherRequest | null; showForm: boolean };
+  | { kind: "borrower"; latest: MyTeacherRequest | null; showForm: boolean };
 
 /** Qué ve cada quien (reglas 5.2–5.4). */
-export function teacherRequestScreen(role: Role, latest: TeacherRequest | null): TeacherRequestScreen {
+export function teacherRequestScreen(role: Role, latest: MyTeacherRequest | null): TeacherRequestScreen {
   if (role === "DOCENTE") {
     return { kind: "teacher" };
   }
@@ -47,6 +47,14 @@ export function teacherRequestScreen(role: Role, latest: TeacherRequest | null):
 
 export function latestRequestMessage(status: TeacherRequestStatus): string {
   return LATEST_MESSAGES[status];
+}
+
+/** Nota del personal bajo una solicitud rechazada, o `null` si no hay (spec F12, regla 5.3). */
+export function latestRequestNote(request: Pick<MyTeacherRequest, "status" | "note">): string | null {
+  if (request.status !== "RECHAZADA" || request.note === null) {
+    return null;
+  }
+  return `Nota del personal: ${request.note}`;
 }
 
 /** Revisión antes de enviar, sobre el texto recortado (regla 5.5). `null` = sin problemas. */

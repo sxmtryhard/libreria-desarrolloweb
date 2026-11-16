@@ -19,6 +19,10 @@ import {
 } from "./accounts/server/repository.firebase";
 import { createSelfRegisterHandler } from "./accounts/server/self-register-handler";
 import { createSignInHandler, createSignOutHandler } from "./accounts/server/session-handlers";
+import {
+  createPendingTeacherRequestsHandler,
+  createTeacherDecisionHandler,
+} from "./accounts/server/teacher-decision-handlers";
 import { createTeacherRequestHandler } from "./accounts/server/teacher-request-handler";
 import { createTeacherRequestService, type TeacherRequestService } from "./accounts/server/teacher-request-service";
 import { type BookService, createBookService } from "./catalog/server/book-service";
@@ -113,6 +117,17 @@ export const teacherRequestHandler = createTeacherRequestHandler({
   now: currentTime,
   rethrow: unstable_rethrow,
 });
+
+const teacherDecisionDeps = {
+  service: teacherRequestService,
+  readSession: () => readSession(currentTime()),
+  now: currentTime,
+  rethrow: unstable_rethrow,
+};
+
+export const pendingTeacherRequestsHandler = createPendingTeacherRequestsHandler(teacherDecisionDeps);
+
+export const teacherDecisionHandler = createTeacherDecisionHandler(teacherDecisionDeps);
 
 export const signInHandler = createSignInHandler({
   sessions: sessionService,

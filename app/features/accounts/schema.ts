@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { RoleSchema, SessionSchema } from "@/shared/schema";
 
-/** Contrato de cuentas (F3, F4, F10 y F11). Solo el orquestador lo cambia. Claves del cable en snake_case. */
+/** Contrato de cuentas (F3, F4, F10, F11 y F12). Solo el orquestador lo cambia. Claves del cable en snake_case. */
 
 export const NAME_MAX_LENGTH = 120;
 export const EMAIL_MAX_LENGTH = 254;
@@ -69,7 +69,7 @@ export const TeacherRequestInputSchema = z.object({
 });
 export type TeacherRequestInput = z.infer<typeof TeacherRequestInputSchema>;
 
-/** Documento de `teacher_requests` (spec F11, regla 2.2). */
+/** Documento de `teacher_requests` (spec F11, regla 2.2). F12 añade la decisión; F11 no la escribe. */
 export const NewTeacherRequestSchema = z.object({
   uid: z.string().min(1),
   email: z.email(),
@@ -77,6 +77,9 @@ export const NewTeacherRequestSchema = z.object({
   reason: z.string().min(1),
   status: TeacherRequestStatusSchema,
   requested_at: z.iso.datetime(),
+  decided_at: z.iso.datetime().nullable().optional(),
+  decided_by_uid: z.string().min(1).nullable().optional(),
+  note: z.string().min(1).nullable().optional(),
 });
 export type NewTeacherRequest = z.infer<typeof NewTeacherRequestSchema>;
 
@@ -88,3 +91,50 @@ export const TeacherRequestSchema = z.object({
   requested_at: z.iso.datetime(),
 });
 export type TeacherRequest = z.infer<typeof TeacherRequestSchema>;
+
+/** La última solicitud, tal como la ve quien la pidió: con la nota del personal si la hay (spec F12, regla 5.3). */
+export const MyTeacherRequestSchema = TeacherRequestSchema.extend({ note: z.string().min(1).nullable() });
+export type MyTeacherRequest = z.infer<typeof MyTeacherRequestSchema>;
+
+export const PENDING_LIST_LIMIT = 100;
+export const NOTE_MAX_LENGTH = 500;
+export const REQUEST_ID_MAX_LENGTH = 128;
+
+/** Una solicitud pendiente, vista por el personal (spec F12, regla 2.2). */
+export const PendingTeacherRequestSchema = z.object({
+  id: z.string().min(1),
+  uid: z.string().min(1),
+  email: z.email(),
+  name: z.string().min(1),
+  reason: z.string().min(1),
+  requested_at: z.iso.datetime(),
+});
+export type PendingTeacherRequest = z.infer<typeof PendingTeacherRequestSchema>;
+
+/** Respuesta de `GET /api/teacher-requests/pending` (spec F12, regla 2). */
+export const PendingTeacherRequestsResponseSchema = z.object({
+  requests: z.array(PendingTeacherRequestSchema),
+});
+export type PendingTeacherRequestsResponse = z.infer<typeof PendingTeacherRequestsResponseSchema>;
+
+/** Decisiones posibles (spec F12, regla 3.1). */
+export const TEACHER_REQUEST_DECISIONS = ["APROBADA", "RECHAZADA"] as const;
+export const TeacherRequestDecisionSchema = z.enum(TEACHER_REQUEST_DECISIONS);
+export type TeacherRequestDecision = z.infer<typeof TeacherRequestDecisionSchema>;
+
+/** Cuerpo de `POST /api/teacher-requests/decision` (spec F12, reglas 3.1 y 5.2). */
+export const DecideTeacherRequestInputSchema = z.object({
+  request_id: z.string().trim().min(1).max(REQUEST_ID_MAX_LENGTH),
+  decision: TeacherRequestDecisionSchema,
+  note: z.string().trim().max(NOTE_MAX_LENGTH).optional(),
+});
+export type DecideTeacherRequestInput = z.infer<typeof DecideTeacherRequestInputSchema>;
+
+/** Respuesta de la decisión (spec F12, regla 6.1). */
+export const DecidedTeacherRequestSchema = z.object({
+  id: z.string().min(1),
+  status: TeacherRequestDecisionSchema,
+  decided_at: z.iso.datetime(),
+  note: z.string().min(1).nullable(),
+});
+export type DecidedTeacherRequest = z.infer<typeof DecidedTeacherRequestSchema>;

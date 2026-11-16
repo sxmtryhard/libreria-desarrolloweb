@@ -258,17 +258,26 @@ describe("F11 · la última solicitud (regla 5.4)", () => {
     requests.seed(stored("RECHAZADA", "uid-ana", "2026-11-01T10:00:00.000Z"));
     requests.seed(stored("PENDIENTE", "uid-luis", "2026-11-15T10:00:00.000Z"));
     const newest = requests.seed({ ...stored("PENDIENTE", "uid-ana", "2026-11-12T10:00:00.000Z"), reason: REASON });
+    // F12 (regla 5.3) añade `note`, la nota del personal; en una pendiente es `null`.
     expect(await service.latest(ANA)).toEqual({
       id: newest.id,
       reason: REASON,
       status: "PENDIENTE",
       requested_at: "2026-11-12T10:00:00.000Z",
+      note: null,
     });
   });
 });
 
 describe("F11 · lo que muestra la pantalla (regla 5)", () => {
-  const pending = { id: "r1", reason: REASON, status: "PENDIENTE" as const, requested_at: NOW.toISOString() };
+  // F12 (regla 5.3) añade `note` a la última solicitud.
+  const pending = {
+    id: "r1",
+    reason: REASON,
+    status: "PENDIENTE" as const,
+    requested_at: NOW.toISOString(),
+    note: null,
+  };
 
   it("un docente ve que ya tiene el rol, sin formulario", () => {
     expect(teacherRequestScreen("DOCENTE", null)).toEqual({ kind: "teacher" });

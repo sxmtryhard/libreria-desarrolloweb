@@ -1,5 +1,12 @@
-import type { Account } from "@/shared/schema";
-import type { NewTeacherRequest, TeacherRequest } from "../schema";
+import type { Account, Role } from "@/shared/schema";
+import type {
+  MyTeacherRequest,
+  NewTeacherRequest,
+  PendingTeacherRequest,
+  TeacherRequest,
+  TeacherRequestDecision,
+} from "../schema";
+import type { StoredTeacherRequest } from "./teacher-requests";
 
 /** Puerto de persistencia de cuentas. Solo guarda y consulta; las reglas viven en el servicio. */
 export interface AccountRepository {
@@ -27,5 +34,27 @@ export interface TeacherRequestRepository {
    */
   createIfNonePending(request: NewTeacherRequest): Promise<TeacherRequest | null>;
   /** La solicitud más reciente de la persona, o `null` si nunca pidió (regla 5.4). */
-  latest(uid: string): Promise<TeacherRequest | null>;
+  latest(uid: string): Promise<MyTeacherRequest | null>;
+  /** Las pendientes de todas las personas, la más antigua primero, como máximo `limit` (spec F12, regla 2.1). */
+  listPending(limit: number): Promise<PendingTeacherRequest[]>;
+  /**
+   * Decide dentro de una transacción (spec F12, reglas 3.5 y 4.1): lee la solicitud y el rol de su cuenta,
+   * `decide` aplica las reglas (y lanza si no se puede) y se guardan la decisión y, si hay, el rol nuevo.
+   */
+  decide(requestId: string, decide: (state: DecisionState) => DecisionChange): Promise<StoredTeacherRequest>;
+}
+
+/** Lo que se lee antes de decidir. `accountRole` es `null` si la cuenta no existe o no hay solicitud. */
+export interface DecisionState {
+  request: StoredTeacherRequest | null;
+  accountRole: Role | null;
+}
+
+/** Lo que se guarda al decidir. `newRole` es el rol nuevo de la cuenta, o `null` si no cambia. */
+export interface DecisionChange {
+  status: TeacherRequestDecision;
+  decided_at: string;
+  decided_by_uid: string;
+  note: string | null;
+  newRole: Role | null;
 }
