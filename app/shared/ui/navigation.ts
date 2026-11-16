@@ -1,6 +1,6 @@
 import type { Role } from "@/shared/schema";
 
-/** Enlaces de la barra de navegación (specs F33 1.2–1.4, F34 1.5 y F35 1.5). Lógica pura. */
+/** Enlaces de la barra de navegación (specs F33 1.2–1.4, F34 1.5, F35 1.5 y F11 5.8). Lógica pura. */
 
 export interface NavLink {
   href: string;
@@ -22,7 +22,12 @@ export const BORROWER_NAV_LINKS: readonly NavLink[] = [
   { href: "/mis-vencidos", label: "Mis vencidos" },
 ];
 
+/** Solo para quien puede pedir el rol de docente (`EXTERNO`, `ESTUDIANTE`), después de los de prestatario. */
+export const TEACHER_REQUEST_NAV_LINK: NavLink = { href: "/solicitar-docente", label: "Solicitar docente" };
+
 const STAFF_ROLES: readonly Role[] = ["BIBLIOTECARIO", "ADMINISTRADOR"];
+const TEACHER_REQUESTER_ROLES: readonly Role[] = ["EXTERNO", "ESTUDIANTE"];
+const REQUESTER_NAV_LINKS: readonly NavLink[] = [...BORROWER_NAV_LINKS, TEACHER_REQUEST_NAV_LINK];
 
 /** Enlaces que dependen del rol; `null` = sin sesión. Se añaden después de `NAV_LINKS`. */
 export function roleLinksFor(role: Role | null): readonly NavLink[] {
@@ -31,6 +36,9 @@ export function roleLinksFor(role: Role | null): readonly NavLink[] {
   }
   if (STAFF_ROLES.includes(role)) {
     return STAFF_NAV_LINKS;
+  }
+  if (TEACHER_REQUESTER_ROLES.includes(role)) {
+    return REQUESTER_NAV_LINKS;
   }
   return BORROWER_NAV_LINKS;
 }

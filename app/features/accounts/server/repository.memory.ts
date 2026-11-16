@@ -1,5 +1,7 @@
 import type { Account } from "@/shared/schema";
-import type { AccountRepository } from "./repository";
+import type { NewTeacherRequest, TeacherRequest } from "../schema";
+import type { AccountRepository, TeacherRequestRepository } from "./repository";
+import { latestOf, type StoredTeacherRequest, toTeacherRequest } from "./teacher-requests";
 
 export interface MemoryUser {
   uid: string;
@@ -51,6 +53,42 @@ export function createMemoryAccountRepository(): MemoryAccountRepository {
     },
     userCount(): number {
       return usersByEmail.size;
+    },
+  };
+}
+
+/** Solicitudes de docente en memoria, para las pruebas. Añade `seed` y `all`. */
+export interface MemoryTeacherRequestRepository extends TeacherRequestRepository {
+  seed(request: NewTeacherRequest): StoredTeacherRequest;
+  all(): StoredTeacherRequest[];
+}
+
+export function createMemoryTeacherRequestRepository(): MemoryTeacherRequestRepository {
+  const stored: StoredTeacherRequest[] = [];
+  let nextId = 1;
+
+  function seed(request: NewTeacherRequest): StoredTeacherRequest {
+    const saved = { id: `request-${nextId}`, ...request };
+    nextId += 1;
+    stored.push(saved);
+    return saved;
+  }
+
+  return {
+    // Sin `await` entre la consulta y el alta: en memoria esto ya es atómico (regla 3.3).
+    createIfNonePending(request: NewTeacherRequest): Promise<TeacherRequest | null> {
+      const pending = stored.some((saved) => saved.uid === request.uid && saved.status === "PENDIENTE");
+      if (pending) {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(toTeacherRequest(seed(request)));
+    },
+    latest(uid: string): Promise<TeacherRequest | null> {
+      return Promise.resolve(latestOf(stored.filter((saved) => saved.uid === uid)));
+    },
+    seed,
+    all(): StoredTeacherRequest[] {
+      return stored.map((saved) => ({ ...saved }));
     },
   };
 }

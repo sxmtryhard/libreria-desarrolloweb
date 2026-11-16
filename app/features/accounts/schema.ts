@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { RoleSchema, SessionSchema } from "@/shared/schema";
 
-/** Contrato de cuentas (F3, F4 y F10). Solo el orquestador lo cambia. Claves del cable en snake_case. */
+/** Contrato de cuentas (F3, F4, F10 y F11). Solo el orquestador lo cambia. Claves del cable en snake_case. */
 
 export const NAME_MAX_LENGTH = 120;
 export const EMAIL_MAX_LENGTH = 254;
@@ -50,3 +50,41 @@ export type SignInInput = z.infer<typeof SignInInputSchema>;
 /** Respuesta de `POST /api/session` (spec F4, regla 1.4). */
 export const SignedInSchema = SessionSchema;
 export type SignedIn = z.infer<typeof SignedInSchema>;
+
+/** Roles que pueden pedir el rol de docente (spec F11, regla 1.1). */
+export const TEACHER_REQUESTER_ROLES = ["EXTERNO", "ESTUDIANTE"] as const;
+export const TeacherRequesterRoleSchema = z.enum(TEACHER_REQUESTER_ROLES);
+
+export const REASON_MIN_LENGTH = 10;
+export const REASON_MAX_LENGTH = 500;
+
+/** Estados de una solicitud de docente (spec F11, regla 2.3). F11 solo crea `PENDIENTE`. */
+export const TEACHER_REQUEST_STATUSES = ["PENDIENTE", "APROBADA", "RECHAZADA"] as const;
+export const TeacherRequestStatusSchema = z.enum(TEACHER_REQUEST_STATUSES);
+export type TeacherRequestStatus = z.infer<typeof TeacherRequestStatusSchema>;
+
+/** Cuerpo de `POST /api/teacher-requests` (spec F11, regla 2.1). Quién pide sale de la sesión. */
+export const TeacherRequestInputSchema = z.object({
+  reason: z.string().trim().min(REASON_MIN_LENGTH).max(REASON_MAX_LENGTH),
+});
+export type TeacherRequestInput = z.infer<typeof TeacherRequestInputSchema>;
+
+/** Documento de `teacher_requests` (spec F11, regla 2.2). */
+export const NewTeacherRequestSchema = z.object({
+  uid: z.string().min(1),
+  email: z.email(),
+  name: z.string().min(1),
+  reason: z.string().min(1),
+  status: TeacherRequestStatusSchema,
+  requested_at: z.iso.datetime(),
+});
+export type NewTeacherRequest = z.infer<typeof NewTeacherRequestSchema>;
+
+/** Respuesta de `POST /api/teacher-requests` y lo que la pantalla muestra (spec F11, regla 4.3). */
+export const TeacherRequestSchema = z.object({
+  id: z.string().min(1),
+  reason: z.string().min(1),
+  status: TeacherRequestStatusSchema,
+  requested_at: z.iso.datetime(),
+});
+export type TeacherRequest = z.infer<typeof TeacherRequestSchema>;

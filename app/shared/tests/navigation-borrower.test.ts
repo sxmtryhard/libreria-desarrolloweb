@@ -10,9 +10,10 @@ describe("F35 · enlaces de los prestatarios en la barra (regla 1.5)", () => {
     ]);
   });
 
+  // F11 (regla 5.8) añade «Solicitar docente» después de estos dos para EXTERNO y ESTUDIANTE.
   it.each<Role>(["EXTERNO", "ESTUDIANTE", "DOCENTE"])("un %s los ve y no ve Préstamos", (role) => {
     const labels = roleLinksFor(role).map((link) => link.label);
-    expect(labels).toEqual(["Mis préstamos", "Mis vencidos"]);
+    expect(labels.slice(0, 2)).toEqual(["Mis préstamos", "Mis vencidos"]);
     expect(labels).not.toContain("Préstamos");
   });
 

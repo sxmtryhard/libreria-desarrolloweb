@@ -12,9 +12,15 @@ import {
 } from "@/shared/server/session.firebase";
 import { type AccountService, createAccountService } from "./accounts/server/account-service";
 import { createRegisterAccountHandler } from "./accounts/server/register-account-handler";
-import { createFirebaseAccountRepository } from "./accounts/server/repository.firebase";
+import {
+  createFirebaseAccountRepository,
+  createFirestoreAccountDirectory,
+  createFirestoreTeacherRequestRepository,
+} from "./accounts/server/repository.firebase";
 import { createSelfRegisterHandler } from "./accounts/server/self-register-handler";
 import { createSignInHandler, createSignOutHandler } from "./accounts/server/session-handlers";
+import { createTeacherRequestHandler } from "./accounts/server/teacher-request-handler";
+import { createTeacherRequestService, type TeacherRequestService } from "./accounts/server/teacher-request-service";
 import { type BookService, createBookService } from "./catalog/server/book-service";
 import { createRegisterBookHandler } from "./catalog/server/register-book-handler";
 import { createFirestoreBookRepository } from "./catalog/server/repository.firestore";
@@ -95,6 +101,18 @@ export const myLoansService: MyLoansService = createMyLoansService({
 });
 
 export const selfRegisterHandler = createSelfRegisterHandler({ service: accountService, rethrow: unstable_rethrow });
+
+export const teacherRequestService: TeacherRequestService = createTeacherRequestService({
+  requests: createFirestoreTeacherRequestRepository(),
+  accounts: createFirestoreAccountDirectory(),
+});
+
+export const teacherRequestHandler = createTeacherRequestHandler({
+  service: teacherRequestService,
+  readSession: () => readSession(currentTime()),
+  now: currentTime,
+  rethrow: unstable_rethrow,
+});
 
 export const signInHandler = createSignInHandler({
   sessions: sessionService,
