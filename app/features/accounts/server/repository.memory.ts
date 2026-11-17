@@ -12,6 +12,8 @@ import type {
   AccountStatusRepository,
   DecisionChange,
   DecisionState,
+  PasswordCheck,
+  PasswordRepository,
   StatusRecord,
   TeacherRequestRepository,
 } from "./repository";
@@ -230,5 +232,48 @@ export function createMemoryAccountStatusRepository(): MemoryAccountStatusReposi
       return Promise.resolve(found[0]);
     },
     changeStatus,
+  };
+}
+
+/** Contraseñas en memoria (spec F15), para las pruebas. */
+export interface MemoryPasswordRepository extends PasswordRepository {
+  seed(uid: string, email: string, password: string): void;
+  passwordOf(uid: string): string | null;
+  revocations(uid: string): number;
+  /** Hace que la comprobación responda que Firebase bloqueó por demasiados intentos. */
+  block(): void;
+}
+
+export function createMemoryPasswordRepository(): MemoryPasswordRepository {
+  const passwords = new Map<string, string>();
+  const emails = new Map<string, string>();
+  const revoked = new Map<string, number>();
+  let blocked = false;
+
+  return {
+    seed(uid: string, email: string, password: string): void {
+      passwords.set(uid, password);
+      emails.set(email, uid);
+    },
+    passwordOf: (uid) => passwords.get(uid) ?? null,
+    revocations: (uid) => revoked.get(uid) ?? 0,
+    block(): void {
+      blocked = true;
+    },
+    checkPassword(email: string, password: string): Promise<PasswordCheck> {
+      if (blocked) {
+        return Promise.resolve("BLOQUEADA");
+      }
+      const uid = emails.get(email);
+      if (uid !== undefined && passwords.get(uid) === password) {
+        return Promise.resolve("CORRECTA");
+      }
+      return Promise.resolve("INCORRECTA");
+    },
+    changePassword(uid: string, newPassword: string): Promise<void> {
+      passwords.set(uid, newPassword);
+      revoked.set(uid, (revoked.get(uid) ?? 0) + 1);
+      return Promise.resolve();
+    },
   };
 }

@@ -16,6 +16,8 @@ import type {
   AccountStatusRepository,
   DecisionChange,
   DecisionState,
+  PasswordCheck,
+  PasswordRepository,
   StatusRecord,
   TeacherRequestRepository,
 } from "./repository";
@@ -235,6 +237,53 @@ export function createFirebaseAccountStatusRepository(): AccountStatusRepository
         throw error;
       }
       return outcome.account;
+    },
+  };
+}
+
+const SIGN_IN_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword";
+
+/** Respuesta de Firebase Authentication al comprobar una contraseña. Solo se lee el código de error. */
+const PasswordCheckResponseSchema = z.object({
+  error: z.object({ message: z.string() }).optional(),
+});
+
+/** Códigos de Firebase que significan «contraseña incorrecta» y «demasiados intentos» (spec F15, reglas 2.4 y 2.5). */
+const WRONG_PASSWORD_CODES = ["INVALID_PASSWORD", "INVALID_LOGIN_CREDENTIALS", "EMAIL_NOT_FOUND", "USER_DISABLED"];
+const BLOCKED_CODE = "TOO_MANY_ATTEMPTS_TRY_LATER";
+
+function checkFromCode(code: string): PasswordCheck {
+  if (code.startsWith(BLOCKED_CODE)) {
+    return "BLOQUEADA";
+  }
+  if (WRONG_PASSWORD_CODES.some((wrong) => code.startsWith(wrong))) {
+    return "INCORRECTA";
+  }
+  throw new Error(`Firebase Authentication respondió ${code} al comprobar la contraseña`);
+}
+
+/**
+ * Contraseñas en Firebase Authentication (spec F15). La actual se comprueba con la API REST de Authentication
+ * (la misma clave pública del navegador); el cambio y el cierre de sesiones, con el SDK de administración.
+ */
+export function createFirebasePasswordRepository(apiKey: string): PasswordRepository {
+  return {
+    async checkPassword(email: string, password: string): Promise<PasswordCheck> {
+      const response = await fetch(`${SIGN_IN_URL}?key=${encodeURIComponent(apiKey)}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password, returnSecureToken: false }),
+      });
+      const body = PasswordCheckResponseSchema.parse(await response.json());
+      if (response.ok) {
+        return "CORRECTA";
+      }
+      return checkFromCode(body.error?.message ?? `HTTP_${response.status}`);
+    },
+
+    async changePassword(uid: string, newPassword: string): Promise<void> {
+      await getAdminAuth().updateUser(uid, { password: newPassword });
+      await getAdminAuth().revokeRefreshTokens(uid);
     },
   };
 }

@@ -183,3 +183,10 @@ export const ReactivationRecordSchema = z.object({
   reactivated_by_uid: z.string().min(1),
 });
 export type ReactivationRecord = z.infer<typeof ReactivationRecordSchema>;
+
+/** Cuerpo de `POST /api/accounts/password` (spec F15, regla 2). Ninguna contraseña se recorta. */
+export const ChangePasswordInputSchema = z.object({
+  current_password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
+  new_password: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
+});
+export type ChangePasswordInput = z.infer<typeof ChangePasswordInputSchema>;

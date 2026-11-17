@@ -12,6 +12,8 @@ import {
 } from "@/shared/server/session.firebase";
 import { type AccountService, createAccountService } from "./accounts/server/account-service";
 import { createRegisterAccountHandler } from "./accounts/server/register-account-handler";
+import { createChangePasswordHandler } from "./accounts/server/change-password-handler";
+import { createPasswordService } from "./accounts/server/password-service";
 import { createStaffAccountHandler } from "./accounts/server/staff-account-handler";
 import {
   createDeactivateAccountHandler,
@@ -23,6 +25,7 @@ import {
   createFirestoreAccountDirectory,
   createFirestoreTeacherRequestRepository,
   createFirebaseAccountStatusRepository,
+  createFirebasePasswordRepository,
 } from "./accounts/server/repository.firebase";
 import { createSelfRegisterHandler } from "./accounts/server/self-register-handler";
 import { createSignInHandler, createSignOutHandler } from "./accounts/server/session-handlers";
@@ -152,6 +155,15 @@ const teacherDecisionDeps = {
 export const pendingTeacherRequestsHandler = createPendingTeacherRequestsHandler(teacherDecisionDeps);
 
 export const teacherDecisionHandler = createTeacherDecisionHandler(teacherDecisionDeps);
+
+export const changePasswordHandler = createChangePasswordHandler({
+  service: createPasswordService({
+    passwords: createFirebasePasswordRepository(process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? ""),
+  }),
+  readSession: () => readSession(currentTime()),
+  clearSessionCookie: async () => writeSessionCookie(await sessionService.close(undefined)),
+  rethrow: unstable_rethrow,
+});
 
 export const signInHandler = createSignInHandler({
   sessions: sessionService,

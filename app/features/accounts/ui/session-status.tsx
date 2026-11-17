@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Session } from "@/shared/schema";
+import { CHANGE_PASSWORD_LINK } from "./password-view";
 import { sessionLabel } from "./role-labels";
 import { SignOutButton } from "./sign-out-button";
 
@@ -18,6 +19,12 @@ export function SessionStatus({ session }: { session: Session | null }) {
   return (
     <>
       <p className="break-all">{sessionLabel(session)}</p>
+      <Link
+        href={CHANGE_PASSWORD_LINK.href}
+        className="inline-flex min-h-11 items-center rounded px-2 font-semibold text-surface underline hover:bg-primary-hover"
+      >
+        {CHANGE_PASSWORD_LINK.label}
+      </Link>
       <SignOutButton />
     </>
   );

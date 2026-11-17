@@ -76,3 +76,14 @@ export interface AccountStatusRepository {
    */
   changeStatus(uid: string, decide: (account: Account | null) => StatusRecord): Promise<Account>;
 }
+
+/** Resultado de comprobar la contraseña actual (spec F15, reglas 2.4 y 2.5). */
+export type PasswordCheck = "CORRECTA" | "INCORRECTA" | "BLOQUEADA";
+
+/** Puerto de contraseñas en Firebase Authentication (spec F15). */
+export interface PasswordRepository {
+  /** Comprueba la contraseña de la cuenta con ese correo, sin crear ninguna sesión. */
+  checkPassword(email: string, password: string): Promise<PasswordCheck>;
+  /** Guarda la contraseña nueva y cierra todas las sesiones de la cuenta (regla 3). */
+  changePassword(uid: string, newPassword: string): Promise<void>;
+}
