@@ -1,6 +1,6 @@
 # F13 · Crear una cuenta de bibliotecario
 
-- **Estado:** Borrador
+- **Estado:** Aprobada (por la persona, 2026-11-16)
 - **Rol(es):** Administrador
 - **Contrato afectado:** `app/features/accounts/schema.ts` (entrada de la cuenta de personal)
 

@@ -19,9 +19,10 @@ Lo mantiene el orquestador: se actualiza al cerrar cada feature (spec aprobada �
 - **Construido:** F10 · Autorregistrarse (2026-11-16). Spec: `docs/specs/f10-autorregistrarse.md`. Entrega: `docs/handoffs/f10-autorregistrarse.md`. API pública `POST /api/accounts/register` y pantalla `/registrarse`; probada en el navegador contra Firebase real.
 - **Construido:** F11 · Solicitar el rol de docente (2026-11-16). Spec: `docs/specs/f11-solicitar-el-rol-de-docente.md`. Entrega: `docs/handoffs/f11-solicitar-el-rol-de-docente.md`. API `POST /api/teacher-requests`, pantalla `/solicitar-docente` y su enlace en la barra; probada en el navegador contra Firebase real.
 - **Construido:** F12 · Aprobar o rechazar una solicitud de docente (2026-11-16). Spec: `docs/specs/f12-aprobar-o-rechazar-una-solicitud-de-docente.md`. Entrega: `docs/handoffs/f12-aprobar-o-rechazar-una-solicitud-de-docente.md`. Solo la API (`GET /api/teacher-requests/pending` y `POST /api/teacher-requests/decision`) y la nota del personal en `/solicitar-docente`; probada contra Firebase real.
-- **Construido:** F36 · Formularios para registrar libros y cuentas (2026-11-16). Spec: `docs/specs/f36-formularios-para-registrar-libros-y-cuentas.md`. Entrega: `docs/handoffs/f36-formularios-para-registrar-libros-y-cuentas.md`. Pantallas `/libros/nuevo` y `/cuentas/nueva` con sus enlaces en la barra del personal; probadas en el navegador contra Firebase real. Van 16 de 40 features.
-- **Spec en curso:** F13 · Crear una cuenta de bibliotecario queda en *Borrador* y en pausa (`docs/specs/f13-crear-una-cuenta-de-bibliotecario.md`): la persona priorizó F36 por la entrega.
-- **Siguiente:** F13 (su spec espera aprobación), ver `docs/features.md`.
+- **Construido:** F36 · Formularios para registrar libros y cuentas (2026-11-16). Spec: `docs/specs/f36-formularios-para-registrar-libros-y-cuentas.md`. Entrega: `docs/handoffs/f36-formularios-para-registrar-libros-y-cuentas.md`. Pantallas `/libros/nuevo` y `/cuentas/nueva` con sus enlaces en la barra del personal; probadas en el navegador contra Firebase real.
+- **Construido:** F13 · Crear una cuenta de bibliotecario (2026-11-16). Spec: `docs/specs/f13-crear-una-cuenta-de-bibliotecario.md`. Entrega: `docs/handoffs/f13-crear-una-cuenta-de-bibliotecario.md`. Solo la API (`POST /api/accounts/staff`, solo administrador); probada contra Firebase real (201, 409, 403, 401, 400 y la cuenta nueva ingresó como Bibliotecario). Van 17 de 40 features.
+- **Spec en curso:** ninguna.
+- **Siguiente:** F14 · Desactivar y reactivar una cuenta, ver `docs/features.md`.
 
 ## Decisiones tomadas
 - La sesión dura 8 horas y no se renueva sola; cerrar sesión revoca los tokens (spec F0, regla 3).
@@ -45,6 +46,7 @@ Lo mantiene el orquestador: se actualiza al cerrar cada feature (spec aprobada �
 - Un `EXTERNO` o `ESTUDIANTE` pide el rol de docente en `/solicitar-docente` con un motivo de 10 a 500 caracteres; solo una pendiente a la vez (409) y tras un rechazo puede volver a pedir; ve el estado de su última solicitud; pedir no cambia el rol (spec F11).
 - El personal (`BIBLIOTECARIO`, `ADMINISTRADOR`) ve las solicitudes de docente pendientes (la más antigua primero) y las aprueba o rechaza; aprobar cambia la cuenta a `DOCENTE` en la misma transacción; al rechazar puede dejar una nota opcional que la persona ve; la decisión es final; la pantalla del personal es F37 (spec F12).
 - El personal registra libros en `/libros/nuevo` y cuentas en `/cuentas/nueva` (enlaces «Registrar libro» y «Registrar cuenta» en su barra); tras registrar se ve el mensaje de éxito y el formulario queda limpio; la contraseña se escribe dos veces; «Ejemplares» empieza en 1 (spec F36).
+- Solo el administrador crea cuentas de bibliotecario con `POST /api/accounts/staff`: escribe nombre, correo y contraseña inicial; el rol siempre es `BIBLIOTECARIO` y el del cuerpo se ignora; un correo repetido da 409 y no cambia la cuenta existente (spec F13).
 
 ## Pendientes de la persona
 - Proyecto de Firebase `biblioteca-prestamos-19bdc` ya creado (2026-11-15): correo/contraseña activo, registro desde el cliente desactivado, Firestore en modo producción con reglas que niegan todo, app web `biblioteca-web` registrada.

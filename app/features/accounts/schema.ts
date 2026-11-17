@@ -30,6 +30,10 @@ export const SelfRegisterInputSchema = z.object({
 });
 export type SelfRegisterInput = z.infer<typeof SelfRegisterInputSchema>;
 
+/** Cuerpo de `POST /api/accounts/staff` (spec F13, regla 2): mismos datos y reglas que F3; el rol nunca sale del cuerpo. */
+export const StaffAccountInputSchema = SelfRegisterInputSchema;
+export type StaffAccountInput = z.infer<typeof StaffAccountInputSchema>;
+
 /** Cuenta creada, tal como se devuelve. Nunca incluye la contraseña (regla 6). */
 export const RegisteredAccountSchema = z.object({
   uid: z.string().min(1),

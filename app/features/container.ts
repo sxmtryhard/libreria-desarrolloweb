@@ -12,6 +12,7 @@ import {
 } from "@/shared/server/session.firebase";
 import { type AccountService, createAccountService } from "./accounts/server/account-service";
 import { createRegisterAccountHandler } from "./accounts/server/register-account-handler";
+import { createStaffAccountHandler } from "./accounts/server/staff-account-handler";
 import {
   createFirebaseAccountRepository,
   createFirestoreAccountDirectory,
@@ -62,6 +63,12 @@ export const searchBooksHandler = createSearchBooksHandler({ service: bookServic
 export const accountService: AccountService = createAccountService({ accounts: createFirebaseAccountRepository() });
 
 export const registerAccountHandler = createRegisterAccountHandler({
+  service: accountService,
+  readSession: () => readSession(currentTime()),
+  rethrow: unstable_rethrow,
+});
+
+export const staffAccountHandler = createStaffAccountHandler({
   service: accountService,
   readSession: () => readSession(currentTime()),
   rethrow: unstable_rethrow,
