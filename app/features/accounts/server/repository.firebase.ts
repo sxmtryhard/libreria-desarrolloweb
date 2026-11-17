@@ -1,5 +1,6 @@
 import "server-only";
-import type { DocumentSnapshot, Transaction } from "firebase-admin/firestore";
+import { type DocumentSnapshot, FieldValue, type Transaction } from "firebase-admin/firestore";
+import { z } from "zod";
 import { type Account, AccountSchema, type Role } from "@/shared/schema";
 import { ACCOUNTS_COLLECTION, getAdminAuth, getAdminFirestore, hasAuthErrorCode } from "@/shared/server/firebase-admin";
 import {
@@ -12,8 +13,10 @@ import {
 import type {
   AccountDirectory,
   AccountRepository,
+  AccountStatusRepository,
   DecisionChange,
   DecisionState,
+  StatusRecord,
   TeacherRequestRepository,
 } from "./repository";
 import { latestOf, oldestPending, type StoredTeacherRequest, toTeacherRequest } from "./teacher-requests";
@@ -142,6 +145,96 @@ export function createFirestoreTeacherRequestRepository(): TeacherRequestReposit
         }
         return { ...state.request, ...decision };
       });
+    },
+  };
+}
+
+/** Valores anteriores de los campos que F14 cambia, para deshacer si Authentication falla. */
+const PreviousStatusSchema = z.object({
+  active: z.boolean().optional(),
+  deactivated_at: z.string().optional(),
+  deactivated_by_uid: z.string().optional(),
+  deactivation_reason: z.string().optional(),
+  reactivated_at: z.string().optional(),
+  reactivated_by_uid: z.string().optional(),
+});
+
+type StatusField = string | boolean | FieldValue;
+
+/** Para cada campo que cambió: su valor anterior, o borrarlo si antes no estaba. */
+function undoOf(record: StatusRecord, previous: z.infer<typeof PreviousStatusSchema>): Record<string, StatusField> {
+  const before = new Map(Object.entries(previous));
+  const undo: Record<string, StatusField> = {};
+  for (const key of Object.keys(record)) {
+    const value = before.get(key);
+    if (value === undefined) {
+      undo[key] = FieldValue.delete();
+    } else {
+      undo[key] = value;
+    }
+  }
+  return undo;
+}
+
+/** Desactivar deshabilita el usuario y cierra sus sesiones; reactivar lo habilita (spec F14, reglas 3.1 y 4.1). */
+async function applyToAuthentication(uid: string, active: boolean): Promise<void> {
+  await getAdminAuth().updateUser(uid, { disabled: !active });
+  if (!active) {
+    await getAdminAuth().revokeRefreshTokens(uid);
+  }
+}
+
+/** Estado de las cuentas en `accounts` y en Firebase Authentication (spec F14). */
+export function createFirebaseAccountStatusRepository(): AccountStatusRepository {
+  function collection() {
+    return getAdminFirestore().collection(ACCOUNTS_COLLECTION);
+  }
+
+  /** Si Authentication falla, se intenta dejar todo como estaba y se lanza el error original. */
+  async function undo(
+    uid: string,
+    record: StatusRecord,
+    previous: z.infer<typeof PreviousStatusSchema>,
+  ): Promise<void> {
+    try {
+      await collection().doc(uid).update(undoOf(record, previous));
+      await getAdminAuth().updateUser(uid, { disabled: previous.active === false });
+    } catch (undoError) {
+      console.error("F14: no se pudo deshacer el cambio de estado", uid, undoError);
+    }
+  }
+
+  return {
+    async findUidByEmail(email: string): Promise<string | null> {
+      const found = await collection().where("email", "==", email).limit(1).get();
+      const document = found.docs[0];
+      if (document === undefined) {
+        return null;
+      }
+      return document.id;
+    },
+
+    async changeStatus(uid: string, decide: (account: Account | null) => StatusRecord): Promise<Account> {
+      const reference = collection().doc(uid);
+      const outcome = await getAdminFirestore().runTransaction(async (transaction) => {
+        const snapshot = await transaction.get(reference);
+        if (!snapshot.exists) {
+          decide(null);
+          throw new Error("decide aceptó una cuenta inexistente");
+        }
+        const current = AccountSchema.parse(snapshot.data());
+        const previous = PreviousStatusSchema.parse(snapshot.data());
+        const record = decide(current);
+        transaction.update(reference, record);
+        return { account: { ...current, active: record.active }, record, previous };
+      });
+      try {
+        await applyToAuthentication(uid, outcome.record.active);
+      } catch (error) {
+        await undo(uid, outcome.record, outcome.previous);
+        throw error;
+      }
+      return outcome.account;
     },
   };
 }

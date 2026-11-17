@@ -1,6 +1,20 @@
 import type { Account, Role } from "@/shared/schema";
-import type { MyTeacherRequest, NewTeacherRequest, PendingTeacherRequest, TeacherRequest } from "../schema";
-import type { AccountRepository, DecisionChange, DecisionState, TeacherRequestRepository } from "./repository";
+import type {
+  DeactivationRecord,
+  MyTeacherRequest,
+  NewTeacherRequest,
+  PendingTeacherRequest,
+  ReactivationRecord,
+  TeacherRequest,
+} from "../schema";
+import type {
+  AccountRepository,
+  AccountStatusRepository,
+  DecisionChange,
+  DecisionState,
+  StatusRecord,
+  TeacherRequestRepository,
+} from "./repository";
 import { latestOf, oldestPending, type StoredTeacherRequest, toTeacherRequest } from "./teacher-requests";
 
 export interface MemoryUser {
@@ -143,5 +157,78 @@ export function createMemoryTeacherRequestRepository(): MemoryTeacherRequestRepo
     failRoleUpdates(): void {
       roleUpdatesFail = true;
     },
+  };
+}
+
+/** Documento `accounts/{uid}` con los campos que guarda F14. */
+export type StoredStatusAccount = Account &
+  Partial<Omit<DeactivationRecord, "active">> &
+  Partial<Omit<ReactivationRecord, "active">>;
+
+/** Estado de cuentas en memoria (spec F14), para las pruebas. */
+export interface MemoryAccountStatusRepository extends AccountStatusRepository {
+  seed(uid: string, account: Account): void;
+  /** El documento guardado, con los campos de F14, o `null`. */
+  stored(uid: string): StoredStatusAccount | null;
+  /** `true` si el usuario está deshabilitado en Authentication. */
+  authDisabled(uid: string): boolean;
+  /** Veces que se cerraron las sesiones del usuario. */
+  revocations(uid: string): number;
+  /** Hace fallar Authentication en los siguientes cambios. */
+  failAuth(): void;
+}
+
+export function createMemoryAccountStatusRepository(): MemoryAccountStatusRepository {
+  const documents = new Map<string, StoredStatusAccount>();
+  const disabled = new Set<string>();
+  const revoked = new Map<string, number>();
+  let authFails = false;
+
+  // Sin `await` antes de `decide`: leer, decidir y guardar ocurre de una vez, como en una transacción.
+  function changeStatus(uid: string, decide: (account: Account | null) => StatusRecord): Promise<Account> {
+    try {
+      const current = documents.get(uid) ?? null;
+      const record = decide(current);
+      if (current === null) {
+        return Promise.reject(new Error("decide aceptó una cuenta inexistente"));
+      }
+      if (authFails) {
+        return Promise.reject(new Error("authentication caído en users.ts:7"));
+      }
+      const next: StoredStatusAccount = { ...current, ...record };
+      documents.set(uid, next);
+      if (record.active) {
+        disabled.delete(uid);
+      } else {
+        disabled.add(uid);
+        revoked.set(uid, (revoked.get(uid) ?? 0) + 1);
+      }
+      return Promise.resolve(next);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+
+  return {
+    seed(uid: string, account: Account): void {
+      documents.set(uid, { ...account });
+      if (account.active === false) {
+        disabled.add(uid);
+      }
+    },
+    stored: (uid) => documents.get(uid) ?? null,
+    authDisabled: (uid) => disabled.has(uid),
+    revocations: (uid) => revoked.get(uid) ?? 0,
+    failAuth(): void {
+      authFails = true;
+    },
+    findUidByEmail(email: string): Promise<string | null> {
+      const found = [...documents.entries()].find(([, account]) => account.email === email);
+      if (found === undefined) {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(found[0]);
+    },
+    changeStatus,
   };
 }

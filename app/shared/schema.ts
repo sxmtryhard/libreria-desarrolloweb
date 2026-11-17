@@ -19,8 +19,15 @@ export const AccountSchema = z.object({
   email: z.email(),
   name: z.string().min(1),
   role: RoleSchema,
+  /** `false` si el personal la desactivó (spec F14). Sin el campo, la cuenta está activa. */
+  active: z.boolean().optional(),
 });
 export type Account = z.infer<typeof AccountSchema>;
+
+/** Una cuenta está activa salvo que tenga `active: false` (spec F14, regla 3). */
+export function isAccountActive(account: Account): boolean {
+  return account.active !== false;
+}
 
 export const ERROR_CODES = [
   "VALIDACION",

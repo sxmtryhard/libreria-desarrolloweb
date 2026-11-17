@@ -5,6 +5,8 @@ import type { Loan, NewLoan } from "../schema";
 export interface Borrower {
   uid: string;
   role: Role;
+  /** `false` si la cuenta está desactivada (spec F14). */
+  active: boolean;
 }
 
 /** Puerto propio hacia las cuentas: préstamos no importa el `server/` de `accounts`. */

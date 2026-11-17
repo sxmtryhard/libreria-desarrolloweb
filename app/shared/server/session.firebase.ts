@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { AccountSchema, type Role, type Session } from "@/shared/schema";
+import { AccountSchema, isAccountActive, type Role, type Session } from "@/shared/schema";
 import { ACCOUNTS_COLLECTION, getAdminAuth, getAdminFirestore, hasAuthErrorCode } from "./firebase-admin";
 import {
   type AccountRolePort,
@@ -66,7 +66,8 @@ const firestoreAccountRoles: AccountRolePort = {
       return null;
     }
     const account = AccountSchema.safeParse(snapshot.data());
-    if (!account.success) {
+    // Una cuenta desactivada no tiene sesión aunque su cookie siga vigente (spec F14, regla 3.1).
+    if (!account.success || !isAccountActive(account.data)) {
       return null;
     }
     return account.data.role;

@@ -92,6 +92,9 @@ export function createLoanService(deps: LoanServiceDeps): LoanService {
     if (borrower === null) {
       throw new NotFoundError("No existe una cuenta con ese correo.");
     }
+    if (!borrower.active) {
+      throw new ConflictError("La cuenta está desactivada.");
+    }
     const role = borrowerRoleOf(borrower.role);
     const loan: NewLoan = {
       book_id: input.book_id,

@@ -11,15 +11,16 @@ import type {
 } from "./repository";
 
 export interface MemoryBorrowerDirectory extends BorrowerDirectory {
-  add(uid: string, email: string, role: Role): void;
+  /** `active` es `false` para una cuenta desactivada (spec F14). */
+  add(uid: string, email: string, role: Role, active?: boolean): void;
 }
 
 /** Cuentas en memoria, para las pruebas. */
 export function createMemoryBorrowerDirectory(): MemoryBorrowerDirectory {
   const byEmail = new Map<string, Borrower>();
   return {
-    add(uid: string, email: string, role: Role): void {
-      byEmail.set(email, { uid, role });
+    add(uid: string, email: string, role: Role, active = true): void {
+      byEmail.set(email, { uid, role, active });
     },
     findByEmail(email: string): Promise<Borrower | null> {
       return Promise.resolve(byEmail.get(email) ?? null);

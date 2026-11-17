@@ -14,9 +14,15 @@ import { type AccountService, createAccountService } from "./accounts/server/acc
 import { createRegisterAccountHandler } from "./accounts/server/register-account-handler";
 import { createStaffAccountHandler } from "./accounts/server/staff-account-handler";
 import {
+  createDeactivateAccountHandler,
+  createReactivateAccountHandler,
+} from "./accounts/server/account-status-handlers";
+import { createAccountStatusService } from "./accounts/server/account-status-service";
+import {
   createFirebaseAccountRepository,
   createFirestoreAccountDirectory,
   createFirestoreTeacherRequestRepository,
+  createFirebaseAccountStatusRepository,
 } from "./accounts/server/repository.firebase";
 import { createSelfRegisterHandler } from "./accounts/server/self-register-handler";
 import { createSignInHandler, createSignOutHandler } from "./accounts/server/session-handlers";
@@ -73,6 +79,17 @@ export const staffAccountHandler = createStaffAccountHandler({
   readSession: () => readSession(currentTime()),
   rethrow: unstable_rethrow,
 });
+
+const accountStatusDeps = {
+  service: createAccountStatusService({ accounts: createFirebaseAccountStatusRepository() }),
+  readSession: () => readSession(currentTime()),
+  now: currentTime,
+  rethrow: unstable_rethrow,
+};
+
+export const deactivateAccountHandler = createDeactivateAccountHandler(accountStatusDeps);
+
+export const reactivateAccountHandler = createReactivateAccountHandler(accountStatusDeps);
 
 export const loanService: LoanService = createLoanService({
   loans: createFirestoreLoanRepository(),

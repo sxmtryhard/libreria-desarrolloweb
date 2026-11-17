@@ -1,8 +1,10 @@
 import type { Account, Role } from "@/shared/schema";
 import type {
+  DeactivationRecord,
   MyTeacherRequest,
   NewTeacherRequest,
   PendingTeacherRequest,
+  ReactivationRecord,
   TeacherRequest,
   TeacherRequestDecision,
 } from "../schema";
@@ -57,4 +59,20 @@ export interface DecisionChange {
   decided_by_uid: string;
   note: string | null;
   newRole: Role | null;
+}
+
+/** Lo que F14 escribe en `accounts/{uid}` al cambiar el estado. */
+export type StatusRecord = DeactivationRecord | ReactivationRecord;
+
+/** Puerto del estado de una cuenta (spec F14). */
+export interface AccountStatusRepository {
+  /** El `uid` de la cuenta con ese correo ya normalizado, o `null` si no hay. */
+  findUidByEmail(email: string): Promise<string | null>;
+  /**
+   * Cambia el estado dentro de una transacción (regla 5.2): lee `accounts/{uid}` (`null` si no existe),
+   * `decide` aplica las reglas (y lanza si no se puede) y se guarda lo que devuelve. Después se refleja en
+   * Authentication: desactivar deshabilita el usuario y cierra sus sesiones; reactivar lo habilita.
+   * Si Authentication falla, se deshace el cambio del documento y se lanza el error. Devuelve la cuenta nueva.
+   */
+  changeStatus(uid: string, decide: (account: Account | null) => StatusRecord): Promise<Account>;
 }

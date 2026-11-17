@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { AccountSchema } from "@/shared/schema";
+import { AccountSchema, isAccountActive } from "@/shared/schema";
 import { ACCOUNTS_COLLECTION, getAdminFirestore } from "@/shared/server/firebase-admin";
 import { type Loan, LoanSchema, type NewLoan, NewLoanSchema } from "../schema";
 import type {
@@ -50,7 +50,8 @@ export function createFirestoreBorrowerDirectory(): BorrowerDirectory {
       if (document === undefined) {
         return null;
       }
-      return { uid: document.id, role: AccountSchema.parse(document.data()).role };
+      const account = AccountSchema.parse(document.data());
+      return { uid: document.id, role: account.role, active: isAccountActive(account) };
     },
   };
 }

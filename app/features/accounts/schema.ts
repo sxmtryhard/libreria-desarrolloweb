@@ -142,3 +142,44 @@ export const DecidedTeacherRequestSchema = z.object({
   note: z.string().min(1).nullable(),
 });
 export type DecidedTeacherRequest = z.infer<typeof DecidedTeacherRequestSchema>;
+
+/** Correo de la cuenta a desactivar o reactivar (spec F14, regla 2.1). */
+const AccountEmailSchema = z.string().trim().toLowerCase().max(EMAIL_MAX_LENGTH).pipe(z.email());
+
+/** Cuerpo de `POST /api/accounts/deactivate` (spec F14, regla 2). */
+export const DeactivateAccountInputSchema = z.object({
+  email: AccountEmailSchema,
+  reason: z.string().trim().min(REASON_MIN_LENGTH).max(REASON_MAX_LENGTH),
+});
+export type DeactivateAccountInput = z.infer<typeof DeactivateAccountInputSchema>;
+
+/** Cuerpo de `POST /api/accounts/reactivate` (spec F14, regla 2). Un `reason` se ignora. */
+export const ReactivateAccountInputSchema = z.object({ email: AccountEmailSchema });
+export type ReactivateAccountInput = z.infer<typeof ReactivateAccountInputSchema>;
+
+/** Respuesta de las dos rutas de F14. */
+export const AccountStatusSchema = z.object({
+  uid: z.string().min(1),
+  email: z.email(),
+  name: z.string().min(1),
+  role: RoleSchema,
+  active: z.boolean(),
+});
+export type AccountStatus = z.infer<typeof AccountStatusSchema>;
+
+/** Lo que F14 guarda en `accounts/{uid}` al desactivar (regla 3.2). */
+export const DeactivationRecordSchema = z.object({
+  active: z.literal(false),
+  deactivated_at: z.iso.datetime(),
+  deactivated_by_uid: z.string().min(1),
+  deactivation_reason: z.string().min(REASON_MIN_LENGTH).max(REASON_MAX_LENGTH),
+});
+export type DeactivationRecord = z.infer<typeof DeactivationRecordSchema>;
+
+/** Lo que F14 guarda en `accounts/{uid}` al reactivar (regla 4.2). El motivo anterior se conserva. */
+export const ReactivationRecordSchema = z.object({
+  active: z.literal(true),
+  reactivated_at: z.iso.datetime(),
+  reactivated_by_uid: z.string().min(1),
+});
+export type ReactivationRecord = z.infer<typeof ReactivationRecordSchema>;
