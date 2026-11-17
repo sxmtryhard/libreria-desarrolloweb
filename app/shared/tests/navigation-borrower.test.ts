@@ -21,7 +21,8 @@ describe("F35 · enlaces de los prestatarios en la barra (regla 1.5)", () => {
     const labels = roleLinksFor(role).map((link) => link.label);
     expect(labels).not.toContain("Mis préstamos");
     expect(labels).not.toContain("Mis vencidos");
-    expect(labels).toEqual(["Préstamos"]);
+    // F36 (regla 1.3) añade los enlaces de los formularios después de «Préstamos».
+    expect(labels[0]).toBe("Préstamos");
   });
 
   it("sin sesión no aparecen", () => {

@@ -1,6 +1,6 @@
 import type { Role } from "@/shared/schema";
 
-/** Enlaces de la barra de navegación (specs F33 1.2–1.4, F34 1.5, F35 1.5 y F11 5.8). Lógica pura. */
+/** Enlaces de la barra de navegación (specs F33 1.2–1.4, F34 1.5, F35 1.5, F11 5.8 y F36 1.3). Lógica pura. */
 
 export interface NavLink {
   href: string;
@@ -14,7 +14,11 @@ export const NAV_LINKS: readonly NavLink[] = [
 ];
 
 /** Solo para el personal (`BIBLIOTECARIO`, `ADMINISTRADOR`). */
-export const STAFF_NAV_LINKS: readonly NavLink[] = [{ href: "/prestamos", label: "Préstamos" }];
+export const STAFF_NAV_LINKS: readonly NavLink[] = [
+  { href: "/prestamos", label: "Préstamos" },
+  { href: "/libros/nuevo", label: "Registrar libro" },
+  { href: "/cuentas/nueva", label: "Registrar cuenta" },
+];
 
 /** Solo para los prestatarios (`EXTERNO`, `ESTUDIANTE`, `DOCENTE`). */
 export const BORROWER_NAV_LINKS: readonly NavLink[] = [
